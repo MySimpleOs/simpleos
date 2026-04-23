@@ -1,0 +1,12 @@
+[submodule "kernel"]
+	path = kernel
+	url = https://github.com/MySimpleOs/simpleos-kernel.git
+[submodule "libc"]
+	path = libc
+	url = https://github.com/MySimpleOs/simpleos-libc.git
+[submodule "userland"]
+	path = userland
+	url = https://github.com/MySimpleOs/simpleos-userland.git
+[submodule "toolchain"]
+	path = toolchain
+	url = https://github.com/MySimpleOs/simpleos-toolchain.git
