@@ -59,11 +59,12 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] **7.4** SYSCALL MSR kurulumu (EFER.SCE/STAR/LSTAR/FMASK) + dispatcher + sys_write + sys_exit (return path = `iretq`, `sysretq` için GDT reorder ertelendi)
 
 ## Faz 8 — `libc/` (önce freestanding, sonra hosted)
-- [ ] `string.h`: `memcpy`, `memset`, `memmove`, `memcmp`, `strlen`, `strcmp`, `strncmp`, `strcpy`
-- [ ] `stdio.h`: `printf`, `snprintf`, `puts`, `putchar` (syscall üstüne)
-- [ ] `stdlib.h`: `malloc`, `free`, `exit`, `abort`
-- [ ] Syscall wrapper'ları: `write`, `read`, `open`, `close`, `exit`
-- [ ] `crt0.S` + userland linker script
+- [x] `string.h`: memcpy/memmove/memset/memcmp/strlen/strcmp/strncmp/strcpy/strncpy/strcat/strchr
+- [x] `stdio.h`: printf/vprintf/snprintf/vsnprintf/puts/putchar (%c %s %d %i %u %x %X %p, `l`/`z` mod)
+- [x] `stdlib.h`: exit, abort, malloc, free, calloc, realloc (64 KiB static arena, coalescing free-list)
+- [x] Syscall wrapper'ları: write, read, _exit (open/close Faz 9'a ertelendi — VFS gerekli)
+- [x] `crt0.S` (bss zero → main → _exit) + `userland.ld` (flat binary @ 0x400000)
+- [x] Kernel `.incbin` ile hello.bin'i gömüyor; ring 3'te printf + malloc çalışıyor
 
 ## Faz 9 — VFS + ilk dosya sistemi
 - [ ] VFS: `vnode`/`file` ops
