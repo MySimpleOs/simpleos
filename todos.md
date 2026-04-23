@@ -42,11 +42,10 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] **4.6** IOAPIC + PS/2 keyboard (IRQ1 → vector 0x21, scan set 1 → ASCII)
 
 ## Faz 5 — Bellek yönetimi
-- [ ] Limine memmap'i parse et
-- [ ] Physical frame allocator (bitmap veya buddy)
-- [ ] Sayfa tabloları: yeni PML4, higher-half + HHDM eşleme
-- [ ] Virtual memory manager
-- [ ] Heap: `kmalloc` / `kfree` (bump → slab/free-list)
+- [x] **5.1** Limine memmap → PMM bitmap (USABLE-only extent, HHDM-accessed, alloc_hint imleci, pre-zero)
+- [x] **5.2** Generic `vmm_map/unmap` (W/USER/PCD/NX flags), PMM-backed page tables, `mmio_map` wrapper
+- [x] **5.3** Heap: `kmalloc/kfree`, first-fit free-list, forward+backward coalesce, lazy page growth (256 KiB initial @ 0xFFFFFFFF90000000)
+- ~~Yeni PML4 / higher-half transition~~ — Limine base rev 3 zaten higher-half + HHDM map'i veriyor; kendi PML4'ümüz Faz 7 (per-process address space) ile gelecek
 
 ## Faz 6 — ACPI & SMP (opsiyonel ama erken olursa kolay)
 - [ ] RSDP'yi Limine'dan al, MADT parse
