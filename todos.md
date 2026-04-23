@@ -53,10 +53,10 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] Per-CPU state — `struct cpu_local` (cpu_id, lapic_id, kernel_stack_top), BSP `kmalloc` ile array'i kuruyor
 
 ## Faz 7 — Süreçler & scheduler
-- [ ] Kernel thread + context switch
-- [ ] Round-robin scheduler, idle task
-- [ ] Ring 3'e geçiş, TSS RSP0
-- [ ] `syscall`/`sysret` MSR kurulumu + syscall dispatcher
+- [x] **7.1** Kernel thread + cooperative context switch (switch.S, trampoline, circular run queue)
+- [x] **7.2** Preemptive round-robin scheduler (timer IRQ → thread_yield; thread_exit)
+- [x] **7.3** Ring 3 + TSS.rsp0 (thread_create_user, user_trampoline iretq, int3 DPL=3)
+- [x] **7.4** SYSCALL MSR kurulumu (EFER.SCE/STAR/LSTAR/FMASK) + dispatcher + sys_write + sys_exit (return path = `iretq`, `sysretq` için GDT reorder ertelendi)
 
 ## Faz 8 — `libc/` (önce freestanding, sonra hosted)
 - [ ] `string.h`: `memcpy`, `memset`, `memmove`, `memcmp`, `strlen`, `strcmp`, `strncmp`, `strcpy`
