@@ -34,12 +34,12 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] QEMU'da renkli kare göründü (screendump doğrulandı) — **Milestone 1 ✅**
 
 ## Faz 4 — Çekirdek altyapı
-- [ ] Serial (COM1) erken log, `printk` ailesi
-- [ ] Kendi GDT'n (Limine'ınkini değiştir) + TSS
-- [ ] IDT + ISR/IRQ stubları (NASM/AT&T asm)
-- [ ] CPU exception handler'ları, panic + register dump
-- [ ] LAPIC timer (veya HPET), IOAPIC (PIC yerine; x86_64 + Limine = APIC)
-- [ ] PS/2 klavye sürücüsü
+- [x] **4.1** Serial (COM1) + `kprintf` (%c %s %d %u %x %X %p %%, width/0-pad)
+- [x] **4.2** Kendi GDT + TSS (5 entry + TSS; rsp0 → 16 KiB kernel stack)
+- [x] **4.3** IDT + ISR stub'ları + exception handler'ı + panic (int3 ile doğrulandı)
+- [x] **4.4** PIC disable + ACPI/MADT parse + LAPIC enable + minimal `mmio_map()` (reserved MMIO için)
+- [x] **4.5** LAPIC timer PIT ile kalibre, periodic 100 Hz, IRQ vector 0x20
+- [x] **4.6** IOAPIC + PS/2 keyboard (IRQ1 → vector 0x21, scan set 1 → ASCII)
 
 ## Faz 5 — Bellek yönetimi
 - [ ] Limine memmap'i parse et
