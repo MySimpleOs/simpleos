@@ -1,5 +1,9 @@
 # SimpleOS — Todos
 
+> **Uzun vade** (Faz 10 sonrası — GUI, ağ, paket yöneticisi, varsayılan
+> uygulamalar, polish) için ayrı dosya: [`ROADMAP.md`](./ROADMAP.md).
+> Bu dosya kabuk çalışmaya başlayana kadarki yakın hedefleri tutar.
+
 Target: **x86_64-elf** · Bootloader: **Limine** · Emulator: **QEMU**
 
 Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıklar var.
