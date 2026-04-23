@@ -77,9 +77,11 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - ~~`/dev/console`, `/dev/null`~~ Faz 10'da (tty driver ile birlikte)
 
 ## Faz 10 — `userland/`
-- [ ] `init`: ilk user process, `/bin/sh`'i exec et
-- [ ] `sh`: minimum (exec, cd, exit)
-- [ ] Coreutils minimum: `echo`, `ls`, `cat`, `clear`
+- [x] Keyboard → stdin ring buffer + `sys_read(fd=0)` block-until-data + scancode set 1 shift/caps
+- [x] `sys_readdir` + libc `readdir_fd` + `dirent.h` (directories artık open'lanabiliyor)
+- [x] `init` = tek process'te built-in shell (`examples/init.c`) — `help` / `echo` / `cat` / `ls` / `clear` / `exit`
+- ~~`fork`/`exec` ile ayrı `/bin/sh`~~ ROADMAP §8'de (per-process PML4 + fork + execve)
+- ~~Ayrı coreutils binary'leri~~ ROADMAP §14'te; şimdilik built-in
 
 ## Faz 11 — Kalite
 - [ ] CI: GitHub Actions — toolchain cache, kernel build, QEMU headless smoke (`-no-reboot`, log parse)
