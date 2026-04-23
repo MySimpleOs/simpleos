@@ -13,11 +13,11 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] `scripts/` iskeleti: `build-toolchain.sh`, `make-iso.sh`, `run-qemu.sh`, `run-qemu-debug.sh` (+ `env.sh`)
 
 ## Faz 1 — `toolchain/`
-- [ ] `toolchain/versions.env`: binutils + gcc sürümlerini sabitle
-- [ ] `scripts/build-toolchain.sh`: `x86_64-elf` target için binutils → gcc (freestanding, no libc) derle, `toolchain/out/` altına kur
-- [ ] `toolchain/out/bin` PATH helper: `scripts/env.sh`
-- [ ] Sanity: `x86_64-elf-gcc --version`, `x86_64-elf-ld --version`
-- [ ] `toolchain/README.md`: kurulum + yeniden derleme adımları
+- [x] `toolchain/versions.env`: binutils 2.43 + gcc 14.2.0 pin (env ile override)
+- [x] `scripts/build-toolchain.sh`: `x86_64-elf` target için binutils → gcc (freestanding, no libc) derle, `toolchain/out/` altına kur; re-entrant, sha256 opsiyonel
+- [x] `toolchain/out/bin` PATH helper: `scripts/env.sh` (Faz 0'da eklendi)
+- [ ] Sanity: `x86_64-elf-gcc --version`, `x86_64-elf-ld --version` (derleme çalıştıktan sonra)
+- [x] `toolchain/README.md`: kurulum + yeniden derleme + host paket listesi
 
 ## Faz 2 — `boot/` + Limine entegrasyonu
 - [ ] `boot/limine/`: Limine binary'lerini (stage + EFI) getir (submodule veya scripts/fetch-limine.sh)
