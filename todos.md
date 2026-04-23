@@ -49,8 +49,8 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 
 ## Faz 6 — ACPI & SMP (opsiyonel ama erken olursa kolay)
 - [x] RSDP'yi Limine'dan al, MADT parse (Faz 4.4'te yapıldı — `acpi.c`, LAPIC+IOAPIC+CPU count çıkarıldı)
-- [ ] AP'leri başlat (SMP bootstrap) — ertelendi, single-core yeterli
-- [ ] Per-CPU state — SMP ile birlikte gelecek
+- [x] AP'leri başlat (SMP bootstrap) — Limine MP request üzerinden, her AP kendi stack'iyle GDT/IDT/LAPIC yükler
+- [x] Per-CPU state — `struct cpu_local` (cpu_id, lapic_id, kernel_stack_top), BSP `kmalloc` ile array'i kuruyor
 
 ## Faz 7 — Süreçler & scheduler
 - [ ] Kernel thread + context switch

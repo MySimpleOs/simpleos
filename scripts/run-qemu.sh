@@ -16,6 +16,7 @@ command -v qemu-system-x86_64 >/dev/null 2>&1 \
 exec qemu-system-x86_64 \
     -M q35 \
     -m 512M \
+    -smp "${SMP:-4}" \
     -cdrom "$ISO" \
     -serial stdio \
     -no-reboot \
