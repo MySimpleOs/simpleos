@@ -27,11 +27,11 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] `scripts/run-qemu-debug.sh`: `-s -S` + `.gdbinit`
 
 ## Faz 3 — Minimum kernel ("Hello, framebuffer")
-- [ ] `kernel/linker.ld`: higher-half `0xFFFFFFFF80000000`, bölümler hizalı
-- [ ] `kernel/src/boot/limine_requests.c`: framebuffer + memmap + HHDM + kernel-address requests
-- [ ] `kernel/src/kmain.c`: Limine framebuffer'a pixel yaz
-- [ ] `kernel/Makefile`: `-ffreestanding -mno-red-zone -mcmodel=kernel -fno-stack-protector -nostdlib`
-- [ ] QEMU'da framebuffer'da renkli kare görünsün — **Milestone 1**
+- [x] `kernel/linker.ld`: higher-half `0xffffffff80000000`, 4 PT_LOAD (requests/text/rodata/data), `.eh_frame` DISCARD
+- [x] `kernel/src/limine_requests.c`: base revision 3 + framebuffer request + start/end markers
+- [x] `kernel/src/kmain.c`: framebuffer'a arka plan + merkezî 200×200 kare
+- [x] `kernel/Makefile`: `x86_64-elf-gcc -ffreestanding -mno-red-zone -mcmodel=kernel -mgeneral-regs-only -fno-stack-protector -fno-PIC`
+- [x] QEMU'da renkli kare göründü (screendump doğrulandı) — **Milestone 1 ✅**
 
 ## Faz 4 — Çekirdek altyapı
 - [ ] Serial (COM1) erken log, `printk` ailesi
