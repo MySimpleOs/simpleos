@@ -1,0 +1,19 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+SortIncludes: false
+IncludeBlocks: Preserve
+SpaceAfterCStyleCast: true
+SpacesInParentheses: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+...
