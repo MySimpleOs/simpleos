@@ -16,7 +16,7 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] `toolchain/versions.env`: binutils 2.43 + gcc 14.2.0 pin (env ile override)
 - [x] `scripts/build-toolchain.sh`: `x86_64-elf` target için binutils → gcc (freestanding, no libc) derle, `toolchain/out/` altına kur; re-entrant, sha256 opsiyonel
 - [x] `toolchain/out/bin` PATH helper: `scripts/env.sh` (Faz 0'da eklendi)
-- [ ] Sanity: `x86_64-elf-gcc --version`, `x86_64-elf-ld --version` (derleme çalıştıktan sonra)
+- [x] Sanity: `x86_64-elf-gcc 14.2.0` + `GNU ld (Binutils) 2.43` doğrulandı (2026-04-23)
 - [x] `toolchain/README.md`: kurulum + yeniden derleme + host paket listesi
 
 ## Faz 2 — `boot/` + Limine entegrasyonu
