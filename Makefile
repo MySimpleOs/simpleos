@@ -45,12 +45,13 @@ $(BOOT)/limine/limine:
 	$(SCRIPTS)/fetch-limine.sh
 
 # Submodule targets are no-ops until each submodule gains its own Makefile.
-kernel:
-	@if [ -f $(KERNEL)/Makefile ]; then $(MAKE) -C $(KERNEL); \
+# Kernel depends on libc so the Faz 8 user demo is available for .incbin.
+kernel: libc
+	@if [ -f $(KERNEL)/Makefile ]; then $(MAKE) -C $(KERNEL) ROOT=$(ROOT); \
 	 else echo "[kernel]   no Makefile yet (Faz 3)"; fi
 
 libc:
-	@if [ -f $(LIBC)/Makefile ]; then $(MAKE) -C $(LIBC); \
+	@if [ -f $(LIBC)/Makefile ]; then $(MAKE) -C $(LIBC) ROOT=$(ROOT); \
 	 else echo "[libc]     no Makefile yet (Faz 8)"; fi
 
 userland:
