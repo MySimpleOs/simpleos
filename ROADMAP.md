@@ -39,8 +39,12 @@ uygulama ekosistemi, platforma özgü fikirler — planlıyor.
 - **Contiguous PMM alloc** — `pmm_alloc_contig(n)` bitmap üstünde
   N-run bulur, DMA buffer'ları için şart.
 - **Display abstraction** — `kernel/src/gpu/display.c`.
-  `struct display` (pixels, pitch, width, height, present). VirtIO-GPU
-  primary; yoksa Limine FB fallback. Tüm üst katmanlar backend-agnostik.
+  `struct display` (pixels, pitch, width, height, `double_buffered`,
+  present). VirtIO-GPU primary; yoksa Limine FB fallback. Üst katmanlar
+  backend-agnostik.
+- **Double buffering** — VirtIO-GPU driver'ında 2 resource + scanout
+  ping-pong; `display_present()` front/back swap eder, next-draw yeni
+  back'e düşer. Limine FB fallback tek-buffer.
 
 ### Faz 11 sonrası en ivedi kolon yok
 Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
@@ -53,7 +57,7 @@ Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
 "macOS kalitesinde cam netliğinde" burada başlıyor.
 
 - [~] **GPU sürücüsü**: VirtIO-GPU **hazır** (Faz 11 — `gpu/virtio_gpu.c`); Intel/AMD/NVIDIA gerçek donanım sürücüleri Faz 12/13'te.
-- [~] **Framebuffer katmanı**: linear framebuffer + VirtIO-GPU TRANSFER+FLUSH akışı var; **double/triple buffering ve tearing-free swap henüz yok**.
+- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **double buffering** (2 resource, scanout ping-pong, `display_present()` swap). Triple buffering + VRR'li gerçek vsync IRQ Faz 12+'de (GPU vblank IRQ'ya bağlı).
 - [ ] **Kompozitör**: per-window surface buffer → final compositing pass
   - GPU shader tabanlı blit (2D), sonra 3D canvas
   - Alpha blending, blur (Gaussian + KAWASE), backdrop blur (cam efekti)
