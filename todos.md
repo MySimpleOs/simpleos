@@ -20,11 +20,11 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] `toolchain/README.md`: kurulum + yeniden derleme + host paket listesi
 
 ## Faz 2 — `boot/` + Limine entegrasyonu
-- [ ] `boot/limine/`: Limine binary'lerini (stage + EFI) getir (submodule veya scripts/fetch-limine.sh)
-- [ ] `boot/limine.conf`: kernel path, cmdline, framebuffer isteği, modules
-- [ ] `scripts/make-iso.sh`: `xorriso` + `limine-install` ile hybrid BIOS/UEFI ISO üret
-- [ ] `scripts/run-qemu.sh`: `qemu-system-x86_64 -M q35 -m 512M -cdrom simpleos.iso -serial stdio`
-- [ ] `scripts/run-qemu-debug.sh`: `-s -S` + GDB hazır `.gdbinit`
+- [x] `boot/limine/`: `scripts/fetch-limine.sh` v9.x-binary'i clone'lar + host tool'u build eder (Limine 9.6.7 doğrulandı)
+- [x] `boot/limine.conf`: Limine protokolü, `kernel_path: boot():/boot/simpleos.elf`
+- [x] `scripts/make-iso.sh`: `xorriso` + `limine bios-install` ile hybrid BIOS/UEFI ISO
+- [x] `scripts/run-qemu.sh`: `qemu-system-x86_64 -M q35 -m 512M -serial stdio`
+- [x] `scripts/run-qemu-debug.sh`: `-s -S` + `.gdbinit`
 
 ## Faz 3 — Minimum kernel ("Hello, framebuffer")
 - [ ] `kernel/linker.ld`: higher-half `0xFFFFFFFF80000000`, bölümler hizalı

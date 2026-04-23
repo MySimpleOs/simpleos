@@ -63,3 +63,4 @@ dkms.conf
 # SimpleOS build outputs
 /build/
 /toolchain/out/
+/boot/limine/

@@ -16,11 +16,12 @@ ISO       := $(BUILD)/simpleos.iso
 
 export ROOT BUILD
 
-.PHONY: help all toolchain kernel libc userland iso run run-debug clean distclean
+.PHONY: help all toolchain limine kernel libc userland iso run run-debug clean distclean
 
 help:
 	@echo "SimpleOS targets:"
 	@echo "  make toolchain   build cross-compiler (x86_64-elf)"
+	@echo "  make limine      fetch Limine bootloader binaries"
 	@echo "  make kernel      build kernel"
 	@echo "  make libc        build libc"
 	@echo "  make userland    build userland programs"
@@ -29,12 +30,19 @@ help:
 	@echo "  make run         boot ISO in QEMU"
 	@echo "  make run-debug   boot ISO in QEMU with GDB stub (-s -S)"
 	@echo "  make clean       remove build artifacts"
-	@echo "  make distclean   clean + remove toolchain output"
+	@echo "  make distclean   clean + remove toolchain output + limine"
 
 all: kernel libc userland
 
 toolchain:
 	$(SCRIPTS)/build-toolchain.sh
+
+# Fetch Limine only when the host tool is missing; re-run fetch-limine.sh
+# directly to force-update to the tip of the pinned branch.
+limine: $(BOOT)/limine/limine
+
+$(BOOT)/limine/limine:
+	$(SCRIPTS)/fetch-limine.sh
 
 # Submodule targets are no-ops until each submodule gains its own Makefile.
 kernel:
@@ -49,7 +57,7 @@ userland:
 	@if [ -f $(USERLAND)/Makefile ]; then $(MAKE) -C $(USERLAND); \
 	 else echo "[userland] no Makefile yet (Faz 10)"; fi
 
-iso: all
+iso: all limine
 	$(SCRIPTS)/make-iso.sh
 
 run: iso
@@ -65,4 +73,4 @@ clean:
 	rm -rf $(BUILD)
 
 distclean: clean
-	rm -rf $(TOOLCHAIN)/out
+	rm -rf $(TOOLCHAIN)/out $(BOOT)/limine

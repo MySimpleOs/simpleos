@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 # Boot a SimpleOS ISO in QEMU.
-# Target shape: qemu-system-x86_64 -M q35 -m 512M -cdrom <iso> -serial stdio
-# Stub for now; wire up in Faz 2.
+#   usage: run-qemu.sh [iso]
+# Defaults to $SIMPLEOS_ROOT/build/simpleos.iso.
 set -euo pipefail
 
-ISO="${1:-}"
-if [[ -z "$ISO" ]]; then
-    echo "usage: $0 <iso>" >&2
-    exit 2
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${SIMPLEOS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
-echo "scripts/run-qemu.sh: not implemented yet (Faz 2) — requested ISO: $ISO" >&2
-exit 1
+ISO="${1:-$ROOT/build/simpleos.iso}"
+[[ -f "$ISO" ]] || { echo "ISO not found: $ISO" >&2; exit 1; }
+
+command -v qemu-system-x86_64 >/dev/null 2>&1 \
+    || { echo "qemu-system-x86_64 missing — apt-get install qemu-system-x86" >&2; exit 1; }
+
+exec qemu-system-x86_64 \
+    -M q35 \
+    -m 512M \
+    -cdrom "$ISO" \
+    -serial stdio \
+    -no-reboot \
+    -no-shutdown

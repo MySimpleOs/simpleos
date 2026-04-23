@@ -1,14 +1,32 @@
 #!/usr/bin/env bash
-# Boot a SimpleOS ISO in QEMU with the GDB stub enabled (-s -S).
-# Pair with: x86_64-elf-gdb build/kernel.elf -ex 'target remote :1234'
-# Stub for now; wire up in Faz 2.
+# Boot a SimpleOS ISO in QEMU paused, with the GDB stub listening on :1234.
+#   usage: run-qemu-debug.sh [iso]
+# In a second terminal:
+#   source scripts/env.sh
+#   x86_64-elf-gdb build/kernel/simpleos.elf -x .gdbinit
 set -euo pipefail
 
-ISO="${1:-}"
-if [[ -z "$ISO" ]]; then
-    echo "usage: $0 <iso>" >&2
-    exit 2
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${SIMPLEOS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
-echo "scripts/run-qemu-debug.sh: not implemented yet (Faz 2) — requested ISO: $ISO" >&2
-exit 1
+ISO="${1:-$ROOT/build/simpleos.iso}"
+[[ -f "$ISO" ]] || { echo "ISO not found: $ISO" >&2; exit 1; }
+
+command -v qemu-system-x86_64 >/dev/null 2>&1 \
+    || { echo "qemu-system-x86_64 missing — apt-get install qemu-system-x86" >&2; exit 1; }
+
+cat >&2 <<'BANNER'
+[debug] QEMU is paused at vCPU reset; GDB stub on tcp::1234.
+[debug] In another terminal:
+[debug]   source scripts/env.sh
+[debug]   x86_64-elf-gdb build/kernel/simpleos.elf -x .gdbinit
+BANNER
+
+exec qemu-system-x86_64 \
+    -M q35 \
+    -m 512M \
+    -cdrom "$ISO" \
+    -serial stdio \
+    -no-reboot \
+    -no-shutdown \
+    -s -S
