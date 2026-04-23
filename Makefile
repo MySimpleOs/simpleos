@@ -12,11 +12,13 @@ USERLAND  := $(ROOT)/userland
 BOOT      := $(ROOT)/boot
 SCRIPTS   := $(ROOT)/scripts
 BUILD     := $(ROOT)/build
+ROOTFS    := $(ROOT)/rootfs
+INITRD    := $(BUILD)/initrd.tar
 ISO       := $(BUILD)/simpleos.iso
 
 export ROOT BUILD
 
-.PHONY: help all toolchain limine kernel libc userland iso run run-debug clean distclean
+.PHONY: help all toolchain limine kernel libc userland initrd iso run run-debug clean distclean
 
 help:
 	@echo "SimpleOS targets:"
@@ -26,6 +28,7 @@ help:
 	@echo "  make libc        build libc"
 	@echo "  make userland    build userland programs"
 	@echo "  make all         kernel + libc + userland"
+	@echo "  make initrd      pack rootfs/ into build/initrd.tar"
 	@echo "  make iso         produce bootable ISO via Limine"
 	@echo "  make run         boot ISO in QEMU"
 	@echo "  make run-debug   boot ISO in QEMU with GDB stub (-s -S)"
@@ -58,7 +61,14 @@ userland:
 	@if [ -f $(USERLAND)/Makefile ]; then $(MAKE) -C $(USERLAND); \
 	 else echo "[userland] no Makefile yet (Faz 10)"; fi
 
-iso: all limine
+initrd: $(INITRD)
+
+$(INITRD): $(shell find $(ROOTFS) -type f 2>/dev/null)
+	@mkdir -p $(BUILD)
+	tar --format=ustar -cf $@ -C $(ROOTFS) .
+	@echo "[initrd] $(INITRD) ($$(stat -c %s $(INITRD)) bytes)"
+
+iso: all limine initrd
 	$(SCRIPTS)/make-iso.sh
 
 run: iso

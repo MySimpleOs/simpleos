@@ -1,0 +1,3 @@
+Hello from /etc/greeting.txt!
+This text lives inside initrd.tar, loaded by Limine, parsed by the
+SimpleOS VFS, and handed to the user program through open/read.
