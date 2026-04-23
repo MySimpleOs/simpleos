@@ -6,15 +6,45 @@ sonrasını — macOS kalitesinde animasyon, modern masaüstü OS özellikleri,
 uygulama ekosistemi, platforma özgü fikirler — planlıyor.
 
 **Tasarım ilkeleri**
-- **Hız > minimal RAM**. Sayfa cache'i, pre-load, JIT derleme serbest.
+- **Hız > minimal olmak zorunda degil ama optimize RAM**. Sayfa cache'i, pre-load, JIT derleme serbest.
 - **Windows kolaylığı** — tak-çalıştır, sezgisel ayar ekranları, tek tıkla
   kurulum — ama **Linux temizliği** — pipe/composable programlar, /etc
   düz-metin, scriptable her şey.
 - **macOS kalitesinde UX** — spring physics animasyon, 60/120 Hz sync,
-  SDF-based UI, cam-saydam (glass) efekt, HiDPI-aware her şey.
+  SDF-based UI, HiDPI-aware her şey.
 - **Monitor-agnostic** — VRR, multi-monitor, mixed DPI, HDR.
 - **Özgün olabilir** — Linux/Unix kopyası olmak zorunda değiliz.
   Kullanıcıya ait alanda (UX, compositor, dağıtım) radikal fikirlere açığız.
+
+---
+
+## İlerleme (2026-04-24)
+
+Şimdiye kadar ROADMAP'ten **Faz 11** (ilk GPU stack'i) işlendi. Aşağıdaki
+üst-düzey parçalar kernel'de canlı:
+
+- **PCI bus enumeration** — `kernel/src/pci/pci.c`. Class/subclass +
+  BAR probe (32/64-bit, size discovery), `pci_find_class` /
+  `pci_find_id` / iterator API. Bütün gelecek sürücüler bunu kullanıyor.
+- **GPU device probe** — `kernel/src/gpu/gpu.c`. Display-class
+  (`0x03`) taraması; Intel/NVIDIA/AMD algılanıyor, log atılıyor,
+  gerçek sürücü Faz 12/13'e ertelendi.
+- **VirtIO transport** — `kernel/src/gpu/virtio.c`. Modern PCI cap
+  layout (common/notify/isr/device), virtqueue setup, feature
+  negotiation, submit+poll.
+- **VirtIO-GPU 2D driver** — `kernel/src/gpu/virtio_gpu.c`.
+  GET_DISPLAY_INFO → RESOURCE_CREATE_2D → ATTACH_BACKING (contiguous
+  DMA) → SET_SCANOUT → TRANSFER_TO_HOST_2D + RESOURCE_FLUSH.
+  QEMU `-vga virtio` ile ekrana render ediyor.
+- **Contiguous PMM alloc** — `pmm_alloc_contig(n)` bitmap üstünde
+  N-run bulur, DMA buffer'ları için şart.
+- **Display abstraction** — `kernel/src/gpu/display.c`.
+  `struct display` (pixels, pitch, width, height, present). VirtIO-GPU
+  primary; yoksa Limine FB fallback. Tüm üst katmanlar backend-agnostik.
+
+### Faz 11 sonrası en ivedi kolon yok
+Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
+"İlerleme" başlığı her büyük milestone'da güncellensin.
 
 ---
 
@@ -22,8 +52,8 @@ uygulama ekosistemi, platforma özgü fikirler — planlıyor.
 
 "macOS kalitesinde cam netliğinde" burada başlıyor.
 
-- [ ] **GPU sürücüsü**: önce VirtIO-GPU (QEMU/VBox), sonra gerçek donanım (Intel/AMD/NVIDIA — en az birini)
-- [ ] **Framebuffer katmanı**: linear framebuffer üstüne double/triple buffering, tearing-free swap
+- [~] **GPU sürücüsü**: VirtIO-GPU **hazır** (Faz 11 — `gpu/virtio_gpu.c`); Intel/AMD/NVIDIA gerçek donanım sürücüleri Faz 12/13'te.
+- [~] **Framebuffer katmanı**: linear framebuffer + VirtIO-GPU TRANSFER+FLUSH akışı var; **double/triple buffering ve tearing-free swap henüz yok**.
 - [ ] **Kompozitör**: per-window surface buffer → final compositing pass
   - GPU shader tabanlı blit (2D), sonra 3D canvas
   - Alpha blending, blur (Gaussian + KAWASE), backdrop blur (cam efekti)
@@ -262,14 +292,14 @@ yapabiliriz". Zamanla genişlesin.
 
 ## Çalışma akışı (plan)
 
-1. **Şimdi**: `todos.md`'deki Faz 10 listesinin her maddesi bitti → TTY'de
-   `$` prompt'u göreceğiz.
-2. **Faz 10 bittikten sonra**: burada 1. bölümden başlayıp sistemleri
-   paralel koldan yürüteceğiz. Öncelik: GPU → Compositor → UI toolkit →
-   ilk 2-3 default app → paket yöneticisi → login/setup → polish.
-3. Kategoriler bağımsız ilerleyebilir (ağ ve grafik paralel olabilir),
-   gerektiğinde yeni "Faz" numarası açılır, `todos.md`'ye yazılır, buradaki
-   madde işaretlenir.
+1. **Şimdi**: Faz 10 bitti (shell canlı), Faz 11 bitti (VirtIO-GPU +
+   display abstraction). Sıradaki doğal kol: gerçek donanım GPU
+   sürücüleri (Intel / AMD / NVIDIA) ve / veya compositor başlangıcı.
+2. **Ardından**: kategoriler bağımsız ilerleyebilir (ağ ve grafik
+   paralel olabilir); gerektiğinde yeni "Faz" numarası açılır,
+   `todos.md`'ye yazılır, bu dosyadaki madde `[x]` yapılır.
+
+`[~]` = "kısmen tamam" — bir alt-madde canlı, geri kalanı bekliyor.
 
 Bu dosya her milestone'da genişler. Yeni fikirler **18. bölüme** gider,
 sonradan uygun kategoriye dağıtılır.
