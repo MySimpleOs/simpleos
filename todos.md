@@ -67,9 +67,10 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - [x] Kernel `.incbin` ile hello.bin'i gömüyor; ring 3'te printf + malloc çalışıyor
 
 ## Faz 9 — VFS + ilk dosya sistemi
-- [ ] VFS: `vnode`/`file` ops
-- [ ] Limine modules'den initrd (tar/USTAR) mount et
-- [ ] `/dev/console`, `/dev/null`
+- [x] **9.1** `LIMINE_MODULE_REQUEST` + `rootfs/` + `build/initrd.tar` + ISO packaging
+- [x] **9.2** Tree VFS (`vnode`, `vfs_lookup`, `vfs_read`, `vfs_dump`) + USTAR parser (tar.c)
+- [x] **9.3** Per-thread fd tablosu + `sys_open`/`sys_close`/`sys_read` VFS üstüne + libc `open/close` + `fcntl.h`
+- ~~`/dev/console`, `/dev/null`~~ Faz 10'da (tty driver ile birlikte)
 
 ## Faz 10 — `userland/`
 - [ ] `init`: ilk user process, `/bin/sh`'i exec et
