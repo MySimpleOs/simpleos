@@ -48,9 +48,9 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 - ~~Yeni PML4 / higher-half transition~~ — Limine base rev 3 zaten higher-half + HHDM map'i veriyor; kendi PML4'ümüz Faz 7 (per-process address space) ile gelecek
 
 ## Faz 6 — ACPI & SMP (opsiyonel ama erken olursa kolay)
-- [ ] RSDP'yi Limine'dan al, MADT parse
-- [ ] AP'leri başlat (SMP bootstrap)
-- [ ] Per-CPU state
+- [x] RSDP'yi Limine'dan al, MADT parse (Faz 4.4'te yapıldı — `acpi.c`, LAPIC+IOAPIC+CPU count çıkarıldı)
+- [ ] AP'leri başlat (SMP bootstrap) — ertelendi, single-core yeterli
+- [ ] Per-CPU state — SMP ile birlikte gelecek
 
 ## Faz 7 — Süreçler & scheduler
 - [ ] Kernel thread + context switch
