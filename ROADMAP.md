@@ -119,8 +119,11 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
     existing spring/ease animations. Verified on SSE2 (qemu64) and
     AVX2 (-cpu max) hosts at 120 Hz target, avg ~4.5 ms/frame
     (up from ~3 ms pre-12.7; extra cost = shadow pass + corner mask).
-- [ ] **Font rendering** (Faz 12.9): stb_truetype entegrasyonu, subpixel
-  AA, harfler için SDF cache, UTF-8, Türkçe + Emoji.
+- [x] **Font rendering** (Faz 12.9): `third_party/stb_truetype.h` + `compositor/font.c`
+  — UTF-8 decoder, per-glyph **SDF cache** (128 slots), horizontal **RGB subpixel**
+  compositing, **Noto Sans** (Latin/Türkçe) + **Noto Sans Symbols 2** (emoji plane +
+  dingbats). Fonts embedded via `src/assets/fonts.S` (`scripts/fetch-fonts.sh`).
+  Demo string in `kmain.c` on the red surface.
 - [ ] **Vector graphics**: path rasterizer (2D, anti-aliased).
 - [ ] **Color management**: sRGB ↔ linear, HDR10, per-monitor ICC profilleri
 
