@@ -86,12 +86,39 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
   cubic, out-back), Q16.16 fixed-point (kernel float yok), retarget,
   ping-pong loop, bind-to-i32/u8. Profesyonel tamamlama Faz 12.5.5'te
   (bezier, cubic-bezier arbitrary, declarative `animate()` API).
-- [ ] **SIMD blit** (Faz 12.5.x): SSE2 / AVX2 alpha blend fast-path.
-  `-mgeneral-regs-only` gerekli özel include + runtime CPUID detect.
+- [x] **SIMD blit** (Faz 12.5.x): SSE2 / AVX2 alpha blend + copy
+  fast-path. Per-CPU SSE/AVX enable (`arch/x86_64/simd.c`: CR0.MP/EM,
+  CR4.OSFXSR/OSXMMEXCPT/OSXSAVE, XCR0.AVX) on BSP + every AP, runtime
+  CPUID detect publishes `g_simd_sse2`/`g_simd_avx2`. Kernel stays
+  `-mgeneral-regs-only`; `compositor/blit_simd.c` opts back in via a
+  per-file Makefile rule + `__attribute__((target("sse2")))` /
+  `target("avx2")` per function so SSE2 keeps legacy (non-VEX) encoding
+  for qemu64 hosts while AVX2 uses VEX-256. Math matches scalar
+  byte-for-byte. `_MM_MALLOC_H_INCLUDED` defined before `<immintrin.h>`
+  so the freestanding kernel dodges its `<stdlib.h>` pull-in.
 - [ ] **Vsync senkronu**: Host display refresh'i ile kilitlenme (şimdilik
   120 Hz uniform); gerçek VSYNC IRQ gerçek donanım sürücüsüyle gelecek.
-- [ ] **Rounded corners + shadow + gradient** (Faz 12.7): SDF-based
-  corner mask, box shadow convolution, linear/radial gradient shader.
+- [x] **Rounded corners + shadow + gradient** (Faz 12.7):
+  - SDF-based AA corner mask (`shadow_corner_mask`, 1/16-px fixed-point
+    integer sqrt — freestanding-safe, no FPU). Blit path splits each
+    surface row into corner bands (scalar + mask) and the middle band
+    (straight SSE2/AVX2 fast path) so rounding only costs the ~2·cr
+    rows at top + bottom.
+  - Drop shadow = cached 8-bit alpha silhouette (rounded rect dilated
+    by `blur`) with a 3-pass separable box blur approximating a
+    Gaussian. Mask regen is lazy, triggered by geometry /
+    corner_radius / blur changes via `surface_ensure_shadow()`.
+    Compose path calls `blit_shadow_scissor` before the surface body;
+    damage tracking uses `surface_effective_rect` so the halo repaints
+    correctly under motion.
+  - Linear + radial gradients write straight into `surface->pixels`
+    (integer Q0.8 lerp, same isqrt). No compose-time state — once the
+    surface is filled, the normal blit pipeline takes over.
+  - Demo (kmain.c): 3 surfaces — red→orange linear, green radial,
+    navy→sky linear — all with 24-px corners + 16-px shadows + the
+    existing spring/ease animations. Verified on SSE2 (qemu64) and
+    AVX2 (-cpu max) hosts at 120 Hz target, avg ~4.5 ms/frame
+    (up from ~3 ms pre-12.7; extra cost = shadow pass + corner mask).
 - [ ] **Font rendering** (Faz 12.9): stb_truetype entegrasyonu, subpixel
   AA, harfler için SDF cache, UTF-8, Türkçe + Emoji.
 - [ ] **Vector graphics**: path rasterizer (2D, anti-aliased).
