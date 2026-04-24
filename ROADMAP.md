@@ -144,14 +144,85 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 
 ## 3. UI toolkit & tema  (Faz 13)
 
-- [ ] **Widget library**: button, label, textfield, slider, scrollview,
-  list, grid, toolbar, tab, tree, chart. Hepsi animasyonlu.
-- [ ] **Layout**: constraint-based (iOS Auto Layout benzeri), grid, flex
-- [ ] **Theming**: tek bir JSON/TOML ile tüm sistem rengi, köşe yumuşaklığı
+**Recommended build order:** theming tokens → layout (flex/grid, then constraints) →
+widgets (each consuming layout + theme) → declarative layer on top. Kernel can host a
+**reference implementation** (`kernel/src/ui/`); long-term, the same APIs should
+compile against userland + DSP1/surface protocol (see §9 stable ABI).
+
+### 3a. Theming (single file drives chrome)
+
+- [ ] **Token schema** — namespaced keys, e.g. `color.bg`, `color.accent`,
+  `radius.sm|md|lg`, `space.xs…xl`, `font.ui`, `shadow.elevation`, `duration.fast`.
+  Document in `docs/ui-theme.md`.
+- [ ] **Loader** — one file per layer: `/etc/ui/theme.toml` (or JSON) in initrd;
+  parse subset in-kernel (no heavy deps: hand-written lexer or tiny parser).
+  Fallback compiled-in default theme.
+- [ ] **Binding API** — `ui_theme_get_u32("color.accent")`, string/font handles;
+  invalid keys → safe default + optional serial warn once.
+- [ ] **Compositor bridge** — map tokens to existing primitives (`gradient`,
+  `path_raster` corner radius, `surface` clear colors) so dock / windows pick up
+  theme without ad-hoc `0xff…` literals.
+- [ ] **Hot reload (optional)** — SIGHUP or inotify-style hook once VFS events exist.
+
+### 3b. Layout (constraints + grid + flex)
+
+- [ ] **Box model** — padding/margin/border in logical px; min/max width/height;
+  `clip` + `overflow` flags for scroll containers.
+- [ ] **Flex** — row/column, `justify` / `align` / `gap` / `wrap`, basis grow/shrink
+  (subset of CSS Flexbox sufficient for toolbars + forms).
+- [ ] **Grid** — explicit tracks + `fr` / minmax; span for list/table cells.
+- [ ] **Constraints (Auto Layout–style)** — linear equality/inequality graph
+  (Cassowary-style or simpler “horizontal/vertical chains + priorities” first);
+  document solver limits (max vars, single root per window).
+- [ ] **Measure pass** — intrinsic size for text (reuse `font_measure` / shaping
+  width), fixed for images; two-pass layout API `layout_measure` → `layout_place`.
+- [ ] **Hit-test tree** — same hierarchy as layout for pointer + focus; integrate
+  with `input_routing` once hit-rects are stable.
+
+### 3c. Widget library (animated; built on §3a–3b + `anim.h`)
+
+- [ ] **Primitives** — `UiView` base (frame, theme ref, dirty, animation slot);
+  focus order; accessibility id (stub).
+- [ ] **Button** — pressed/hover/disabled states; spring or `anim` curve on opacity
+  + scale; keyboard activate.
+- [ ] **Label** — single-style text; ellipsis; optional markdown subset later.
+- [ ] **TextField** — cursor blink, selection rect, `stdin` / IME bridge when IME
+  exists (Faz 11); scroll clipped content.
+- [ ] **Slider** — value + thumb drag; tick marks optional; keyboard nudge.
+- [ ] **ScrollView** — clip child, drag + wheel; overscroll rubber-band (anim).
+- [ ] **List** — variable row height after measure; recycle row surfaces (pool).
+- [ ] **Grid** — cell factory + selection; keyboard nav grid.
+- [ ] **Toolbar** — horizontal flex row of buttons/separators/spacers.
+- [ ] **Tab** — tab bar + stacked content; lazy build inactive tabs.
+- [ ] **Tree** — expand/collapse chevron; indent layout; virtualized rows.
+- [ ] **Chart** — line/bar first (CPU graph style); axes + theme colors; no full
+  plotting lib initially.
+
+### 3d. Dark / light
+
 - [ ] **Dark / light**: system-wide switch, per-app override, otomatik
-  sunrise/sunset
-- [ ] **Declarative UI framework**: SwiftUI / Jetpack Compose tarzı — state
-  değişir, view ağacı otomatik diff'lenir
+  sunrise/sunset (theme file variants `theme-dark.toml` / `theme-light.toml` +
+  scheduler hook when RTC/location stack exists).
+
+### 3e. Declarative UI framework (SwiftUI / Compose–style)
+
+- [ ] **Model** — immutable `UiNode` tree + `state` bag; `build(ctx) -> tree`
+  user callback (C first; macros optional later).
+- [ ] **Diff** — structural identity (`key` / type); reuse views when matched;
+  minimal subtree replace; batch layout invalidation.
+- [ ] **Bindings** — one-way `bind(state.foo)`; two-way for TextField/Slider;
+  optional `@Observable` pattern in C via code-gen or X-macro (later).
+- [ ] **Side-by-side imperative** — escape hatch: host raw `surface` for games /
+  legacy.
+
+### 3f. Userland path (after §3e prototype)
+
+Moving the **toolkit + declarative runtime** to userland once **stable syscalls +
+surface submit** (DSP1 / Wayland-like) are frozen is **logical and recommended**:
+kernel keeps compositor, input dispatch, and boot chrome; apps link a userland UI
+library that only talks to the display server. A short **in-kernel spike** of §3e
+validates APIs before ABI lock — avoid baking a huge UI stack into the kernel
+long-term.
 
 ## 4. Display yönetimi  (Faz 11)
 
