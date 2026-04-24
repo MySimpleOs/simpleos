@@ -13,11 +13,18 @@ ISO="${1:-$ROOT/build/simpleos.iso}"
 command -v qemu-system-x86_64 >/dev/null 2>&1 \
     || { echo "qemu-system-x86_64 missing — apt-get install qemu-system-x86" >&2; exit 1; }
 
+# -vga std: Bochs/std VGA adapter exposes a plain linear framebuffer that
+# Limine hands us via the framebuffer request. Writes land in guest RAM
+# and QEMU's display emulator reads them directly at host refresh — no
+# virtio-gpu TRANSFER_TO_HOST_2D round-trip. The virtio path had subtle
+# tearing visible on moving surfaces (bottom-edge flicker); the direct
+# framebuffer path removes that as a class. CPU-composited 2D remains
+# the rendering model (see DECISIONS).
 exec qemu-system-x86_64 \
     -M q35 \
     -m 512M \
     -smp "${SMP:-4}" \
-    -vga virtio \
+    -vga std \
     -cdrom "$ISO" \
     -serial stdio \
     -no-reboot \

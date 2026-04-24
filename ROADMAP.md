@@ -58,28 +58,41 @@ Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
 
 ## 1. Grafik & kompozisyon katmanı  (Faz 11–13)
 
-"macOS kalitesinde cam netliğinde" burada başlıyor.
+"macOS kalitesinde cam netliğinde" burada başlıyor — **CPU 2D blit
+kalıcı render modelidir**, GPU shader yolu denenmiyor. Freestanding
+kernel + `-mgeneral-regs-only` ile rep-movsq ve manuel vektorleştirmeyle
+modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 
-- [~] **GPU sürücüsü**: VirtIO-GPU **hazır** (Faz 11 — `gpu/virtio_gpu.c`); Intel/AMD/NVIDIA gerçek donanım sürücüleri Faz 12/13'te.
-- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **single-buffer scanout** (bind-once, per-frame transfer+flush). Rect-aware present (Faz 12.5) damage bolgelerini ayri transfer+flush atiyor. Double/triple buffering gerçek vblank IRQ'suyla Faz 12+'de (flicker nedeniyle SET_SCANOUT ping-pong geri alındı — bkz. Faz 12.4.1).
-- [~] **Kompozitör**: CPU compositor **canlı** (Faz 12.1–12.5): surface + z-sort + alpha blit + 60 Hz thread + damage tracking.
-  Statik sahnede ~0.2 ms frame, frame'lerin %87'si zero-damage ile
-  short-circuit ediliyor (present bile atilmiyor). Kalanlar:
-  - GPU shader tabanlı blit (2D), sonra 3D canvas
-  - Blur (Gaussian + KAWASE), backdrop blur (cam efekti) — Faz 12.8
-  - Font rendering — Faz 12.9
-- [ ] **Damage tracking + rect-aware present**: [x] (Faz 12.5) —
-  per-surface prev-vs-curr diff, greedy-merge damage list (max 16 rect,
-  overflow'da bbox'a collapse), scissor-clipped clear+blit, her rect
-  ayri virtio transfer+flush. Dmg=0 frame'de present de yok.
-- [ ] **Animation engine**: spring physics (stiffness/damping), bezier curves,
-  interruptible tween'ler, declarative API (`animate(element, 'x', 100, 0.3s, ease_out_back)`)
-- [ ] **Vsync senkronu**: GPU'nun VSYNC IRQ'sundan beslenen frame loop
-  (genellikle GPU page-flip completion)
-- [ ] **Damage tracking**: sadece değişen rect'ler yeniden compositelensin
-- [ ] **Font rendering**: FreeType (ya da kendi TTF parser'ımız) + subpixel
-  AA, harfler için SDF cache, emoji
-- [ ] **Vector graphics**: path rasterizer (2D, anti-aliased, GPU-assisted)
+- [x] **Display backend**: Bochs / std VGA üstünden Limine framebuffer
+  (kalıcı). Software shadow buffer, IRQ-off atomic publish (cli/sfence),
+  rep-movsq rect memcpy; 1280x800 @ 120 Hz'te frame 3-4 ms. VirtIO-GPU
+  driver `gpu/virtio_gpu.c` hala hazır ama default değil (Faz 12.5.4:
+  sub-rect TRANSFER tearing, partial-publish bug'ları nedeniyle std VGA
+  kalıcı seçildi).
+- [x] **CPU 2D compositor**: surface + z-sort + alpha blit + 120 Hz
+  thread + per-surface damage tracking + scissor-clipped clear+blit.
+  Statik sahnede ~3 µs frame, animasyonlu sahnede ~4 ms, frame'lerin
+  çoğu zero-damage ile short-circuit (present bile yok).
+- [x] **Damage tracking + atomic rect publish** (Faz 12.5): per-surface
+  prev-vs-curr diff, greedy-merge damage list (max 16 rect, overflow'da
+  bbox'a collapse), scissor-clipped clear+blit, shadow→hw_fb rect
+  memcpy IRQ-off + sfence.
+- [x] **Animation engine** (Faz 12.3): spring physics (stiffness/
+  damping, semi-implicit Euler), easing curves (linear, in/out/in-out
+  cubic, out-back), Q16.16 fixed-point (kernel float yok), retarget,
+  ping-pong loop, bind-to-i32/u8. Profesyonel tamamlama Faz 12.5.5'te
+  (bezier, cubic-bezier arbitrary, declarative `animate()` API).
+- [ ] **Multi-core compositor** (Faz 12.6): tile-based compose, her
+  CPU'ya bir band; APs artık idle değil, worker havuzunda bekliyor.
+- [ ] **SIMD blit** (Faz 12.5.x): SSE2 / AVX2 alpha blend fast-path.
+  `-mgeneral-regs-only` gerekli özel include + runtime CPUID detect.
+- [ ] **Vsync senkronu**: Host display refresh'i ile kilitlenme (şimdilik
+  120 Hz uniform); gerçek VSYNC IRQ gerçek donanım sürücüsüyle gelecek.
+- [ ] **Rounded corners + shadow + gradient** (Faz 12.7): SDF-based
+  corner mask, box shadow convolution, linear/radial gradient shader.
+- [ ] **Font rendering** (Faz 12.9): stb_truetype entegrasyonu, subpixel
+  AA, harfler için SDF cache, UTF-8, Türkçe + Emoji.
+- [ ] **Vector graphics**: path rasterizer (2D, anti-aliased).
 - [ ] **Color management**: sRGB ↔ linear, HDR10, per-monitor ICC profilleri
 
 ## 2. Pencere sistemi  (Faz 11–12)

@@ -26,7 +26,7 @@ exec qemu-system-x86_64 \
     -M q35 \
     -m 512M \
     -smp "${SMP:-4}" \
-    -vga virtio \
+    -vga std \
     -cdrom "$ISO" \
     -serial stdio \
     -no-reboot \
