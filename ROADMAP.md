@@ -124,7 +124,11 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
   compositing, **Noto Sans** (Latin/Türkçe) + **Noto Sans Symbols 2** (emoji plane +
   dingbats). Fonts embedded via `src/assets/fonts.S` (`scripts/fetch-fonts.sh`).
   Demo string in `kmain.c` on the red surface.
-- [ ] **Vector graphics**: path rasterizer (2D, anti-aliased).
+- [x] **Vector graphics**: `compositor/path.{h,c}` + `path_raster.c` — move /
+  line / quadratic / cubic / close, recursive flatten (1/16 px), **non-zero
+  winding** fill, **4× SSAA** coverage + straight-alpha blend, **stroke** as
+  filled quads per segment (multi `move_to` subpaths). Demo on green surface
+  in `kmain.c`.
 - [ ] **Color management**: sRGB ↔ linear, HDR10, per-monitor ICC profilleri
 
 ## 2. Pencere sistemi  (Faz 11–12)
