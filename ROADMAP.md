@@ -42,9 +42,13 @@ uygulama ekosistemi, platforma özgü fikirler — planlıyor.
   `struct display` (pixels, pitch, width, height, `double_buffered`,
   present). VirtIO-GPU primary; yoksa Limine FB fallback. Üst katmanlar
   backend-agnostik.
-- **Double buffering** — VirtIO-GPU driver'ında 2 resource + scanout
-  ping-pong; `display_present()` front/back swap eder, next-draw yeni
-  back'e düşer. Limine FB fallback tek-buffer.
+- **Single-buffer scanout** — VirtIO-GPU driver'ı artık tek resource'a
+  bind ediyor (`SET_SCANOUT` bir kez, her `present` yalnızca
+  `TRANSFER_TO_HOST_2D` + `RESOURCE_FLUSH`). SET_SCANOUT'u her frame
+  değiştirmek QEMU host display'inde flicker yaratıyordu (Faz 12.4.1).
+  İkinci backing hala allocate — future triple-buffer yolu için
+  rezerv. Gerçek vblank tabanlı ping-pong Faz 12+'da GPU VSYNC IRQ'ya
+  bağlı gelecek.
 
 ### Faz 11 sonrası en ivedi kolon yok
 Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
@@ -57,7 +61,7 @@ Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
 "macOS kalitesinde cam netliğinde" burada başlıyor.
 
 - [~] **GPU sürücüsü**: VirtIO-GPU **hazır** (Faz 11 — `gpu/virtio_gpu.c`); Intel/AMD/NVIDIA gerçek donanım sürücüleri Faz 12/13'te.
-- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **double buffering** (2 resource, scanout ping-pong, `display_present()` swap). Triple buffering + VRR'li gerçek vsync IRQ Faz 12+'de (GPU vblank IRQ'ya bağlı).
+- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **single-buffer scanout** (bind-once, per-frame transfer+flush). Double/triple buffering gerçek vblank IRQ'suyla Faz 12+'de (flicker nedeniyle SET_SCANOUT ping-pong geri alındı — bkz. Faz 12.4.1).
 - [ ] **Kompozitör**: per-window surface buffer → final compositing pass
   - GPU shader tabanlı blit (2D), sonra 3D canvas
   - Alpha blending, blur (Gaussian + KAWASE), backdrop blur (cam efekti)
