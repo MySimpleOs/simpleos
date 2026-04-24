@@ -25,7 +25,7 @@ Format: `[ ]` todo, `[x]` done. Faz sırası zorunlu değil ama bağımlılıkla
 
 ## Faz 2 — `boot/` + Limine entegrasyonu
 - [x] `boot/limine/`: `scripts/fetch-limine.sh` v9.x-binary'i clone'lar + host tool'u build eder (Limine 9.6.7 doğrulandı)
-- [x] `boot/limine.conf`: Limine protokolü, `kernel_path: boot():/boot/simpleos.elf`
+- [x] `boot/limine.conf.in` + `scripts/gen-limine-conf.sh`: Limine + `resolution` from `rootfs/etc/display.conf` at ISO build
 - [x] `scripts/make-iso.sh`: `xorriso` + `limine bios-install` ile hybrid BIOS/UEFI ISO
 - [x] `scripts/run-qemu.sh`: `qemu-system-x86_64 -M q35 -m 512M -serial stdio`
 - [x] `scripts/run-qemu-debug.sh`: `-s -S` + `.gdbinit`
