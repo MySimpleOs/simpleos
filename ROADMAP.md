@@ -61,11 +61,17 @@ Aşağıdaki bölümlerdeki `[ ]` maddeler hala yapılacaklar. Bu
 "macOS kalitesinde cam netliğinde" burada başlıyor.
 
 - [~] **GPU sürücüsü**: VirtIO-GPU **hazır** (Faz 11 — `gpu/virtio_gpu.c`); Intel/AMD/NVIDIA gerçek donanım sürücüleri Faz 12/13'te.
-- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **single-buffer scanout** (bind-once, per-frame transfer+flush). Double/triple buffering gerçek vblank IRQ'suyla Faz 12+'de (flicker nedeniyle SET_SCANOUT ping-pong geri alındı — bkz. Faz 12.4.1).
-- [ ] **Kompozitör**: per-window surface buffer → final compositing pass
+- [~] **Framebuffer katmanı**: linear FB + VirtIO-GPU **single-buffer scanout** (bind-once, per-frame transfer+flush). Rect-aware present (Faz 12.5) damage bolgelerini ayri transfer+flush atiyor. Double/triple buffering gerçek vblank IRQ'suyla Faz 12+'de (flicker nedeniyle SET_SCANOUT ping-pong geri alındı — bkz. Faz 12.4.1).
+- [~] **Kompozitör**: CPU compositor **canlı** (Faz 12.1–12.5): surface + z-sort + alpha blit + 60 Hz thread + damage tracking.
+  Statik sahnede ~0.2 ms frame, frame'lerin %87'si zero-damage ile
+  short-circuit ediliyor (present bile atilmiyor). Kalanlar:
   - GPU shader tabanlı blit (2D), sonra 3D canvas
-  - Alpha blending, blur (Gaussian + KAWASE), backdrop blur (cam efekti)
-  - Per-frame animation tick'i (60/120/VRR hedefli)
+  - Blur (Gaussian + KAWASE), backdrop blur (cam efekti) — Faz 12.8
+  - Font rendering — Faz 12.9
+- [ ] **Damage tracking + rect-aware present**: [x] (Faz 12.5) —
+  per-surface prev-vs-curr diff, greedy-merge damage list (max 16 rect,
+  overflow'da bbox'a collapse), scissor-clipped clear+blit, her rect
+  ayri virtio transfer+flush. Dmg=0 frame'de present de yok.
 - [ ] **Animation engine**: spring physics (stiffness/damping), bezier curves,
   interruptible tween'ler, declarative API (`animate(element, 'x', 100, 0.3s, ease_out_back)`)
 - [ ] **Vsync senkronu**: GPU'nun VSYNC IRQ'sundan beslenen frame loop
