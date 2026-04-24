@@ -64,26 +64,28 @@ kernel + `-mgeneral-regs-only` ile rep-movsq ve manuel vektorleştirmeyle
 modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 
 - [x] **Display backend**: Bochs / std VGA üstünden Limine framebuffer
-  (kalıcı). Software shadow buffer, IRQ-off atomic publish (cli/sfence),
-  rep-movsq rect memcpy; 1280x800 @ 120 Hz'te frame 3-4 ms. VirtIO-GPU
-  driver `gpu/virtio_gpu.c` hala hazır ama default değil (Faz 12.5.4:
-  sub-rect TRANSFER tearing, partial-publish bug'ları nedeniyle std VGA
-  kalıcı seçildi).
+  (tek yol, GPU/VirtIO-GPU kodu Faz 12.6'da silindi). Software shadow
+  buffer, IRQ-off atomic publish (cli/sfence), rep-movsq rect memcpy;
+  1280x800 @ 120 Hz'te frame 3-4 ms.
 - [x] **CPU 2D compositor**: surface + z-sort + alpha blit + 120 Hz
   thread + per-surface damage tracking + scissor-clipped clear+blit.
-  Statik sahnede ~3 µs frame, animasyonlu sahnede ~4 ms, frame'lerin
+  Statik sahnede ~3 µs frame, animasyonlu sahnede ~3-4 ms, frame'lerin
   çoğu zero-damage ile short-circuit (present bile yok).
 - [x] **Damage tracking + atomic rect publish** (Faz 12.5): per-surface
   prev-vs-curr diff, greedy-merge damage list (max 16 rect, overflow'da
   bbox'a collapse), scissor-clipped clear+blit, shadow→hw_fb rect
   memcpy IRQ-off + sfence.
+- [x] **Multi-core compositor** (Faz 12.6): damage bbox horizontal
+  band'lere bölünüyor, her online CPU bir band'i (BSP + APs) atomic
+  fetch-add tile counter üzerinden claim edip scissor-clipped compose
+  ediyor. APs artık idle değil — compositor_ap_worker'da epoch üzerinde
+  bekliyor, frame başına uyanıyor. Min band = 32 rows; üstünde tile
+  sayısı CPU count ile eşleşiyor. Stats: `cpus=4 bsp-tiles=N ap-tiles=M`.
 - [x] **Animation engine** (Faz 12.3): spring physics (stiffness/
   damping, semi-implicit Euler), easing curves (linear, in/out/in-out
   cubic, out-back), Q16.16 fixed-point (kernel float yok), retarget,
   ping-pong loop, bind-to-i32/u8. Profesyonel tamamlama Faz 12.5.5'te
   (bezier, cubic-bezier arbitrary, declarative `animate()` API).
-- [ ] **Multi-core compositor** (Faz 12.6): tile-based compose, her
-  CPU'ya bir band; APs artık idle değil, worker havuzunda bekliyor.
 - [ ] **SIMD blit** (Faz 12.5.x): SSE2 / AVX2 alpha blend fast-path.
   `-mgeneral-regs-only` gerekli özel include + runtime CPUID detect.
 - [ ] **Vsync senkronu**: Host display refresh'i ile kilitlenme (şimdilik
