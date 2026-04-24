@@ -64,8 +64,8 @@ kernel + `-mgeneral-regs-only` ile rep-movsq ve manuel vektorleştirmeyle
 modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 
 - [x] **Display backend**: Bochs / std VGA üstünden Limine framebuffer
-  (tek yol, GPU/VirtIO-GPU kodu Faz 12.6'da silindi). Software shadow
-  buffer, IRQ-off atomic publish (cli/sfence), rep-movsq rect memcpy;
+  (tek yol, GPU/VirtIO-GPU kodu Faz 12.6'da silindi). Software compositor
+  back buffer, IRQ-off atomic publish (cli/sfence), rep-movsq rect memcpy;
   1280x800 @ 120 Hz'te frame 3-4 ms.
 - [x] **CPU 2D compositor**: surface + z-sort + alpha blit + 120 Hz
   thread + per-surface damage tracking + scissor-clipped clear+blit.
@@ -73,7 +73,7 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
   çoğu zero-damage ile short-circuit (present bile yok).
 - [x] **Damage tracking + atomic rect publish** (Faz 12.5): per-surface
   prev-vs-curr diff, greedy-merge damage list (max 16 rect, overflow'da
-  bbox'a collapse), scissor-clipped clear+blit, shadow→hw_fb rect
+  bbox'a collapse), scissor-clipped clear+blit, back-buffer→hw_fb rect
   memcpy IRQ-off + sfence.
 - [x] **Multi-core compositor** (Faz 12.6): damage bbox horizontal
   band'lere bölünüyor, her online CPU bir band'i (BSP + APs) atomic
@@ -84,8 +84,8 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 - [x] **Animation engine** (Faz 12.3): spring physics (stiffness/
   damping, semi-implicit Euler), easing curves (linear, in/out/in-out
   cubic, out-back), Q16.16 fixed-point (kernel float yok), retarget,
-  ping-pong loop, bind-to-i32/u8. Profesyonel tamamlama Faz 12.5.5'te
-  (bezier, cubic-bezier arbitrary, declarative `animate()` API).
+  ping-pong loop, bind-to-i32/u8. **Faz 12.5.5**: CSS-style `cubic-bezier`
+  easing (`anim_ease_bezier`, Q16.16 control points; x₁/x₂ clamped [0,1]).
 - [x] **SIMD blit** (Faz 12.5.x): SSE2 / AVX2 alpha blend + copy
   fast-path. Per-CPU SSE/AVX enable (`arch/x86_64/simd.c`: CR0.MP/EM,
   CR4.OSFXSR/OSXMMEXCPT/OSXSAVE, XCR0.AVX) on BSP + every AP, runtime
@@ -96,29 +96,17 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
   for qemu64 hosts while AVX2 uses VEX-256. Math matches scalar
   byte-for-byte. `_MM_MALLOC_H_INCLUDED` defined before `<immintrin.h>`
   so the freestanding kernel dodges its `<stdlib.h>` pull-in.
-- [ ] **Vsync senkronu**: Host display refresh'i ile kilitlenme (şimdilik
-  120 Hz uniform); gerçek VSYNC IRQ gerçek donanım sürücüsüyle gelecek.
-- [x] **Rounded corners + shadow + gradient** (Faz 12.7):
-  - SDF-based AA corner mask (`shadow_corner_mask`, 1/16-px fixed-point
-    integer sqrt — freestanding-safe, no FPU). Blit path splits each
-    surface row into corner bands (scalar + mask) and the middle band
-    (straight SSE2/AVX2 fast path) so rounding only costs the ~2·cr
-    rows at top + bottom.
-  - Drop shadow = cached 8-bit alpha silhouette (rounded rect dilated
-    by `blur`) with a 3-pass separable box blur approximating a
-    Gaussian. Mask regen is lazy, triggered by geometry /
-    corner_radius / blur changes via `surface_ensure_shadow()`.
-    Compose path calls `blit_shadow_scissor` before the surface body;
-    damage tracking uses `surface_effective_rect` so the halo repaints
-    correctly under motion.
-  - Linear + radial gradients write straight into `surface->pixels`
-    (integer Q0.8 lerp, same isqrt). No compose-time state — once the
-    surface is filled, the normal blit pipeline takes over.
-  - Demo (kmain.c): 3 surfaces — red→orange linear, green radial,
-    navy→sky linear — all with 24-px corners + 16-px shadows + the
-    existing spring/ease animations. Verified on SSE2 (qemu64) and
-    AVX2 (-cpu max) hosts at 120 Hz target, avg ~4.5 ms/frame
-    (up from ~3 ms pre-12.7; extra cost = shadow pass + corner mask).
+- [x] **Vsync (policy)**: `/etc/display.conf` `vsync=0|1`. When on, after each
+  frame's rect `present()` the compositor calls `display_vsync_wait_after_present()`:
+  TSC-paced wait to the next nominal `1/refresh_hz` boundary (`thread_yield` loop).
+  Bu gerçek scanout IRQ değil; donanım VSYNC ileride sürücü ile eklenecek.
+- [x] **Rounded corners + gradient** (Faz 12.7):
+  - SDF-based AA corner mask (`rounded_corner_mask` in `blit.c`, 1/16-px
+    fixed-point integer sqrt). Blit path splits each surface row into corner
+    bands (scalar + mask) and the middle band (SSE2/AVX2 fast path).
+  - Linear + radial gradients write into `surface->pixels` (Q0.8 lerp).
+  - Demo (kmain.c): 3 surfaces — gradients + paths + rounded corners;
+    anim includes cubic-bezier (12.5.5).
 - [x] **Font rendering** (Faz 12.9): `third_party/stb_truetype.h` + `compositor/font.c`
   — UTF-8 decoder, per-glyph **SDF cache** (128 slots), horizontal **RGB subpixel**
   compositing, **Noto Sans** (Latin/Türkçe) + **Noto Sans Symbols 2** (emoji plane +
@@ -133,11 +121,22 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 
 ## 2. Pencere sistemi  (Faz 11–12)
 
-- [ ] **Display server**: Wayland-ish — her client kendi surface'ini submit
-  eder, compositor birleştirir. Protocol kendi tasarımımız (basit, tip-güvenli)
-- [ ] **Window manager**: move/resize/minimize/maximize, snap layouts,
-  virtual desktops, pencere geçiş animasyonları
-- [ ] **Input routing**: klavye fokusu, pointer capture, drag & drop
+- [x] **Display server** (bootstrap, `kernel/src/gpu/display_server.{h,c}`):
+  - Wayland-benzeri model: client `struct surface*` sahipliği; compositor
+    sadece `display_server_surface_submit` / `surface_withdraw` ile stack’ler.
+  - **DSP1** wire başlığı: `ds_msg_header_t` (`magic`, `version`, `reserved`)
+    — ileride syscall / virtio ile aynı layout.
+  - Boot: demo yüzeyler kaldırıldı; ilk frame tam siyah (`0xff000000`); cursor
+    compositor’a eklenmiyor (boş scanout).
+- [x] **Window manager** (bootstrap, `kernel/src/wm/window_manager.{h,c}`):
+  - `wm_register_window` / `wm_unregister_window`, `wm_move`, `wm_raise`,
+    `wm_set_focus`, minimize / maximize / restore, `wm_snap_to_edges`,
+    `wm_set_active_desktop` (visibility), `wm_transition_begin` stub (anim).
+  - `wm_resize` stores logical size; pixel realloc TODO.
+- [x] **Input routing** (bootstrap, `kernel/src/input/input_routing.{h,c}`):
+  - Keyboard focus + pointer capture tokens; DND phase + `drag_begin` /
+    `drag_motion` / `drag_cancel` / `drag_drop`; `input_routing_pointer_pressed`
+    policy hook (hit-test wiring later).
 - [ ] **IME**: Türkçe F/Q klavye düzeni, dead-key, CJK/emoji girişi için
   compose protocol
 - [ ] **Wayland/Xwayland köprüsü**: Linux binary'leri çalıştırmak istersek
@@ -148,10 +147,7 @@ modern donanımda memory-bandwidth-bound performansta ilerliyoruz.
 - [ ] **Widget library**: button, label, textfield, slider, scrollview,
   list, grid, toolbar, tab, tree, chart. Hepsi animasyonlu.
 - [ ] **Layout**: constraint-based (iOS Auto Layout benzeri), grid, flex
-- [ ] **Theming**: tek bir JSON/TOML ile tüm sistem rengi, köşe yumuşaklığı,
-  typography değişsin
-- [ ] **Accessibility primitives**: VoiceOver benzeri screen reader API,
-  focus rings, high-contrast mode
+- [ ] **Theming**: tek bir JSON/TOML ile tüm sistem rengi, köşe yumuşaklığı
 - [ ] **Dark / light**: system-wide switch, per-app override, otomatik
   sunrise/sunset
 - [ ] **Declarative UI framework**: SwiftUI / Jetpack Compose tarzı — state
