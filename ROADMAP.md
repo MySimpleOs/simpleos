@@ -151,18 +151,194 @@ compile against userland + DSP1/surface protocol (see §9 stable ABI).
 
 ### 3a. Theming (single file drives chrome)
 
-- [ ] **Token schema** — namespaced keys, e.g. `color.bg`, `color.accent`,
-  `radius.sm|md|lg`, `space.xs…xl`, `font.ui`, `shadow.elevation`, `duration.fast`.
-  Document in `docs/ui-theme.md`.
-- [ ] **Loader** — one file per layer: `/etc/ui/theme.toml` (or JSON) in initrd;
-  parse subset in-kernel (no heavy deps: hand-written lexer or tiny parser).
-  Fallback compiled-in default theme.
-- [ ] **Binding API** — `ui_theme_get_u32("color.accent")`, string/font handles;
-  invalid keys → safe default + optional serial warn once.
-- [ ] **Compositor bridge** — map tokens to existing primitives (`gradient`,
-  `path_raster` corner radius, `surface` clear colors) so dock / windows pick up
-  theme without ad-hoc `0xff…` literals.
-- [ ] **Hot reload (optional)** — SIGHUP or inotify-style hook once VFS events exist.
+**Tek tasarım dili — macOS (Apple HIG / Sequoia çizgisi).** İki ayrı “Windows /
+macOS preset” yok; tüm chrome **bir** token seti ve **bir** palet ailesi (koyu
+öncelikli boot, açık tema §3d ile). `theme.toml` (ileride) aynı anahtarları
+override eder. Bağımlılık sırası: şema → gömülü varsayılanlar → parser/merge
+(3a.3) → `ui_theme_get_*` API → compositor köprüsü.
+
+---
+
+#### 3a.0 — Tasarım hedefi (tek yapı: macOS)
+
+- **Nötr zeminler**: hafif sıcak gri (`#1E1E1E` … `#3A3A3A`), banding için saf
+  siyah kaçınılır.
+- **Sistem mavisi**: açık modda `#007AFF`, koyu modda `#0A84FF` (Apple sistem
+  accent ailesi).
+- **Derinlik**: agresif çerçeve yerine ton katmanı (`base` → `surface` →
+  `surface_elevated`) + ince `border.subtle`.
+- Renkler şimdilik **sRGB ARGB32**; §1 color management gelince aynı anahtarlar
+  linear / display P3 map’e bağlanır.
+
+---
+
+#### 3a.1 — Token şeması (namespaced keys)
+
+**Adım 1 — isimlendirme kuralı**  
+`<group>.<name>` veya `<group>.<role>.<state>`; sadece `a-z`, `0-9`, `_`, `.`
+(kesin grammar `docs/ui-theme.md` içinde EBNF).
+
+**Adım 2 — renk token’ları (semantic + raw)**
+
+| Anahtar (örnek) | Anlamı |
+|-----------------|--------|
+| `color.bg.base` | kök masaüstü / compositor arka planı |
+| `color.bg.surface` | pencere, panel, kart yüzeyi |
+| `color.bg.surface_elevated` | flyout, tooltip, modal |
+| `color.border.subtle` / `color.border.default` / `color.border.strong` | çerçeve hiyerarşisi |
+| `color.text.primary` / `secondary` / `tertiary` / `disabled` | metin |
+| `color.accent.default` / `hover` / `pressed` | birincil aksiyon |
+| `color.semantic.success` / `warning` / `error` / `info` | durum |
+| `color.focus.ring` | klavye odağı (WCAG kontrastına uygun) |
+
+**Adım 3 — ölçü ve tipografi token’ları**
+
+- `radius.none|xs|sm|md|lg|xl|full` — dp cinsinden; compositor `path_raster` /
+  SDF köşe ile eşlenir.
+- `space.xs…xl` — margin/padding ölçeği (4 dp grid: 4, 8, 12, 16, 24, 32…).
+- `font.ui.family` / `font.ui.size_sm|md|lg` — `font.c` ile handle.
+- `shadow.elevation_0…3` — ARGB + blur + offset (kernel’de basit: renk + ofset;
+  tam blur stack ileride).
+- `duration.fast|normal|slow` — ms; `anim.h` ile eşleme.
+
+**Adım 4 — durum (state) sonekleri**  
+`color.bg.surface_hover`, `…_pressed`, `…_selected`, `…_disabled` — widget
+implementasyonu §3c’de bu anahtarları okur.
+
+**Çıktı**: `docs/ui-theme.md` — EBNF, tam anahtar listesi, macOS koyu/açık
+referans tabloları, kontrast hedefleri.
+
+---
+
+#### 3a.2 — Referans palet (sRGB, tek aile: macOS)
+
+Değerler **ARGB32** (`0xAARRGGBB`); şimdilik **AA = 0xFF**. İki satır: **Dark**
+(boot varsayılanı) ve **Light** (§3d anahtarı `appearance = light` ile seçilecek;
+şimdilik dokümantasyon + aynı token isimleri).
+
+**Dark (boot default)**
+
+| Token | `#RRGGBB` | Not |
+|-------|-----------|-----|
+| `color.bg.base` | `#1E1E1E` | masaüstü |
+| `color.bg.surface` | `#2C2C2C` | pencere / panel |
+| `color.bg.surface_elevated` | `#3A3A3A` | flyout / title bar |
+| `color.border.subtle` | `#424242` | |
+| `color.border.default` | `#545458` | separator |
+| `color.text.primary` | `#F5F5F7` | |
+| `color.text.secondary` | `#A1A1A6` | |
+| `color.text.tertiary` | `#6E6E73` | |
+| `color.accent.default` | `#0A84FF` | sistem mavisi (dark) |
+| `color.accent.hover` | `#409CFF` | |
+| `color.accent.pressed` | `#0060DF` | |
+| `color.semantic.success` | `#32D74B` | |
+| `color.semantic.warning` | `#FFD60A` | |
+| `color.semantic.error` | `#FF453A` | |
+| `color.focus.ring` | `#0A84FF` | |
+
+**Light**
+
+| Token | `#RRGGBB` | Not |
+|-------|-----------|-----|
+| `color.bg.base` | `#F5F5F7` | |
+| `color.bg.surface` | `#FFFFFF` | |
+| `color.bg.surface_elevated` | `#FFFFFF` | lift: `shadow.*` |
+| `color.border.subtle` | `#D1D1D6` | |
+| `color.border.default` | `#C6C6C8` | |
+| `color.text.primary` | `#1D1D1F` | |
+| `color.text.secondary` | `#6E6E73` | |
+| `color.text.tertiary` | `#AEAEB2` | |
+| `color.accent.default` | `#007AFF` | |
+| `color.accent.hover` | `#0077ED` | |
+| `color.accent.pressed` | `#006ADB` | |
+| `color.semantic.success` | `#34C759` | |
+| `color.semantic.warning` | `#FF9500` | |
+| `color.semantic.error` | `#FF3B30` | |
+| `color.focus.ring` | `#007AFF` | |
+
+**Kontrast hedefleri** (manuel audit; otomatik checker 3a.3 sonrası): gövde metni
+`text.primary` × `bg.base` / `bg.surface` **≥ 4.5:1**; büyük başlık **≥ 3:1**;
+`focus.ring` zemin üzerinde **≥ 3:1**.
+
+---
+
+#### 3a.3 — Dosya formatı ve yükleme sırası
+
+**Adım 1 — dosya konumu**  
+`/etc/ui/theme.toml` (veya `theme.json`) initrd’de; VFS yoksa **gömülü blob**
+(`kernel/src/ui/theme_default.inc` benzeri) aynı parser’dan geçer.
+
+**Adım 2 — TOML alt kümesi (öneri)**  
+`[meta] name, version` → `[appearance] mode = "dark" | "light"` → `[color]`
+düz anahtarlar → `[radius]` → isteğe bağlı override’lar `[color]` ile aynı
+isimler. Parser:
+**yorum satırı**, `key = value`, string, integer, **ARGB hex** (`0xFF1C1C1C` veya
+`#1C1C1C` → AA=FF tamamlanır). **Yok**: tablo dizisi, çok satırlı string,
+ tarih tipi.
+
+**Adım 3 — yükleme sırası (deterministik)**  
+1. Sıfırla: tüm token’ları **compiled-in macOS Dark** ile doldur.  
+2. `appearance = light` ise **3a.2 Light** satırıyla renk grubunu değiştir.  
+3. `theme.toml` üstüne **shallow merge** (yalnız bilinen anahtarlar).  
+4. Bilinmeyen anahtar: **yoksay + serial’de bir kez** `WARN`.
+
+**Adım 4 — doğrulama**  
+Zorunlu anahtarlar eksikse **3a.2 Dark** değerine dön; hâlâ tutarsızlık varsa
+güvenli minimal tema (aynı tablo).
+
+---
+
+#### 3a.4 — Binding API (C, kernel + ileride userland)
+
+- `void ui_theme_init(const void *toml_or_json, size_t len);` — boot’ta bir kez.
+- `uint32_t ui_theme_get_u32(const char *key);` — ARGB; eksik → compiled default.
+- `const char *ui_theme_get_str(const char *key);` — font ailesi vb.
+- `int ui_theme_get_radius_dp(const char *key);` — `radius.md` → int.
+- `void ui_theme_subscribe_changed(void (*cb)(void));` — hot reload için (opsiyonel).
+
+**Thread-safety**: okuma **read-mostly** snapshot; reload’da **çift buffer**
+(pointer swap) veya RCU tek yazar.
+
+---
+
+#### 3a.5 — Compositor köprüsü (mevcut primitiflere map)
+
+| Token kullanımı | Mevcut API / modül |
+|-----------------|---------------------|
+| `color.bg.*` | `surface` clear, `gradient` başlangıç rengi |
+| `color.accent.*` | dock highlight, seçili pencere border, `path` stroke |
+| `radius.*` | `rounded_corner_mask` / blit köşe yarıçapı |
+| `duration.*` | `anim.h` süreleri |
+| `shadow.*` | (şimdilik) düz gölge dikdörtgeni veya alpha düşük fill — tam blur §1 |
+
+**Adım sırası**: önce **desktop + wm chrome** sabitleri theme’den; sonra
+**demo yüzeyleri** kaldırıldığı için kmain’de **tek** `ui_theme_apply_desktop()`
+çağrısı.
+
+---
+
+#### 3a.6 — Hot reload (opsiyonel, son aşama)
+
+- Tetik: **SIGHUP** (userland) veya kernel konsol komutu `theme reload`.
+- VFS **watch** gelince: `theme.toml` değişimi → aynı parser → `subscribe` →
+  compositor **damage full frame**.
+
+---
+
+#### 3a.7 — Yapılacaklar özeti (checkbox)
+
+- [x] **3a.1** Token şeması + `docs/ui-theme.md` (EBNF, tam anahtar listesi, kontrast
+      kuralları) + çekirdek `ui_theme_*` gömülü Dark tablo + getter’lar.
+- [x] **3a.2** Light appearance + **gömülü** Light tablo (`k_u32_light` + `[appearance] mode` /
+      JSON `mode` / `appearance`); boot’ta `ui_theme` seçer.
+- [x] **3a.3** TOML/JSON **subset parser** (`kernel/src/ui/ui_theme.c`), initrd
+      `/etc/ui/theme.toml` | `theme.json`, shallow merge + parse hatasında Dark baseline.
+- [x] **3a.4** `ui_theme_get_*` API + bilinmeyen anahtar için sınırlı serial uyarı
+      (`ui_theme.c`).
+- [~] **3a.5** Boot masaüstü + `simple_desktop` chrome `ui_theme` üzerinden; wm /
+      diğer modüllerde literal temizliği sürer.
+- [x] **3a.6** Hot reload: **`theme reload`** on COM1 serial line + `ui_theme_reload()` +
+      `subscribe` → `compositor_set_desktop_bg` + `simple_desktop_apply_theme` (SIGHUP/inotify sonra).
 
 ### 3b. Layout (constraints + grid + flex)
 

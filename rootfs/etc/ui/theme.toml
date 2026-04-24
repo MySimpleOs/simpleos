@@ -1,0 +1,13 @@
+# SimpleOS UI theme — subset TOML (see docs/ui-theme.md §7)
+# appearance: dark (boot default) or light (macOS reference palette)
+
+[meta]
+name = "SimpleOS"
+version = 1
+
+[appearance]
+mode = "dark"
+
+# Example overrides (uncomment to tune):
+# [color]
+# accent.default = "#0A84FF"
