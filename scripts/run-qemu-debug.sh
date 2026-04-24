@@ -27,6 +27,7 @@ exec qemu-system-x86_64 \
     -m 512M \
     -smp "${SMP:-4}" \
     -vga std \
+    -device virtio-tablet-pci \
     -cdrom "$ISO" \
     -serial stdio \
     -no-reboot \
